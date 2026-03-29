@@ -81,3 +81,12 @@ Route::middleware(['auth'])->group(function () {
              ->name('users.toggleActive');
     });
 });
+
+Route::get('/mecanicien', function () {
+    return response()->file(public_path('mecanicien/index.html'));
+});
+
+Route::get('/mecanicien/', function () {
+    return response()->file(public_path('mecanicien/index.html'));
+});
+

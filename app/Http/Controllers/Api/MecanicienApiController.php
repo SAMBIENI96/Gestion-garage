@@ -71,6 +71,31 @@ class MecanicienApiController extends Controller
         return response()->json($orders);
     }
 
+    // GET /api/mes-taches-terminees
+    public function mesTachesTerminees(Request $request)
+    {
+        $orders = RepairOrder::with(['client:id,nom,prenom,telephone', 'vehicle:id,immatriculation,marque,modele'])
+            ->where('assigned_to', $request->user()->id)
+            ->where('statut', 'termine')
+            ->orderBy('date_sortie_effective', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(fn($o) => [
+                'id'                => $o->id,
+                'numero'            => $o->numero,
+                'statut'            => $o->statut,
+                'statut_label'      => $o->statut_label,
+                'urgence'           => $o->urgence,
+                'urgence_label'     => $o->urgence_label,
+                'description_panne' => $o->description_panne,
+                'date_entree'       => $o->date_entree?->format('d/m/Y'),
+                'client'            => $o->client,
+                'vehicle'           => $o->vehicle,
+            ]);
+
+        return response()->json($orders);
+    }
+
     // GET /api/taches/{id}
     public function tacheDetail(Request $request, RepairOrder $repair)
     {
@@ -84,7 +109,9 @@ class MecanicienApiController extends Controller
             'id'                => $repair->id,
             'numero'            => $repair->numero,
             'statut'            => $repair->statut,
+            'statut_label'      => $repair->statut_label,
             'urgence'           => $repair->urgence,
+            'urgence_label'     => $repair->urgence_label,
             'description_panne' => $repair->description_panne,
             'pieces_estimees'   => $repair->pieces_estimees,
             'notes_patron'      => $repair->notes_patron,
