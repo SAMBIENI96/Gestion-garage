@@ -446,7 +446,7 @@
         <!-- Footer -->
         <div class="left-footer">
             <div class="divider"></div>
-            <p class="footer-copy">© 2025 AutoGest Pro. Tous droits réservés.</p>
+            <p class="footer-copy">© <span id="current-year"></span> AutoGest Pro. Tous droits réservés.</p>
         </div>
 
     </div>
@@ -458,17 +458,9 @@
              alt="Garage automobile">
 
         <div class="right-content">
-            <div class="stars">
-                <div class="star"></div>
-                <div class="star"></div>
-                <div class="star"></div>
-                <div class="star"></div>
-                <div class="star"></div>
-            </div>
-
+           
             <p class="testimonial">"L'outil indispensable pour piloter notre garage. Une vue claire sur chaque réparation en cours."</p>
 
-            
         </div>
     </div>
 
