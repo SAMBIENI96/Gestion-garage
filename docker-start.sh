@@ -3,13 +3,14 @@ set -e
 
 echo "Demarrage AutoGest Pro..."
 
-# Variables
+# Vider les caches
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-# Migrer
-php artisan migrate --force --seed
+# Migrer ET seeder automatiquement
+php artisan migrate --force
+php artisan db:seed --force
 
 # Storage link
 php artisan storage:link
