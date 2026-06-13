@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('remise_montant', 10, 2)->default(0);
             $table->decimal('total_ttc', 10, 2);
 
-            $table->enum('statut', ['brouillon', 'validee', 'payee', 'annulee'])->default('brouillon');
+$table->string('statut')->default('brouillon');
             $table->date('date_facture');
             $table->text('notes')->nullable();
 

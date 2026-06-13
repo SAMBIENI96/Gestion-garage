@@ -21,16 +21,8 @@ return new class extends Migration
             $table->text('pieces_estimees')->nullable();
             $table->decimal('cout_estime', 10, 2)->nullable();
 
-            $table->enum('statut', [
-                'nouveau',
-                'en_attente_pieces',
-                'en_cours',
-                'termine',
-                'probleme',
-                'annule'
-            ])->default('nouveau');
-
-            $table->enum('urgence', ['normal', 'urgent', 'vip'])->default('normal');
+           $table->string('statut')->default('nouveau');
+           $table->string('urgence')->default('normal');
 
             $table->integer('kilometrage_entree')->nullable();
             $table->date('date_entree');
