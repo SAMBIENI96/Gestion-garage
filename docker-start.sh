@@ -1,11 +1,18 @@
 #!/bin/bash
+set -e
 
-# Générer la clé si elle n'existe pas
-php artisan key:generate --force
+echo "Demarrage AutoGest Pro..."
 
-# Vider les caches
+# Variables
 php artisan config:clear
-php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
 
-# Lancer Apache
+# Migrer
+php artisan migrate --force --seed
+
+# Storage link
+php artisan storage:link
+
+echo "Serveur pret !"
 apache2-foreground

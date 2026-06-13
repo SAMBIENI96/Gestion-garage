@@ -14,7 +14,9 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
     /etc/apache2/sites-available/*.conf \
     /etc/apache2/sites-available/*.conf.fallback 2>/dev/null || true
 
-RUN a2enmod rewrite
+RUN a2enmod rewrite headers
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
 WORKDIR /var/www/html
 COPY . .
