@@ -10,35 +10,69 @@ use Illuminate\Http\Request;
 class MecanicienApiController extends Controller
 {
     // POST /api/login
-    public function login(Request $request)
-    {
-        $data = $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
-        ]);
+   public function login(Request $request)
+{
+    $data = $request->validate([
+        'email'    => 'required|email',
+        'password' => 'required',
+    ]);
 
-        if (!\Auth::attempt($data)) {
-            return response()->json(['message' => 'Identifiants incorrects.'], 401);
-        }
+    // Vérifier si l'utilisateur existe
+    $user = \App\Models\User::where('email', $data['email'])->first();
 
-        $user = \Auth::user();
-
-        if (!$user->is_active) {
-            return response()->json(['message' => 'Compte désactivé.'], 403);
-        }
-
-        if (!$user->isMecanicien()) {
-            return response()->json(['message' => 'Accès réservé aux mécaniciens.'], 403);
-        }
-
-        $token = $user->createToken('flutter-app')->plainTextToken;
-
+    if (!$user) {
         return response()->json([
-            'token' => $token,
-            'user'  => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
-        ]);
+            'success' => false,
+            'message' => 'Utilisateur introuvable',
+            'email_recu' => $data['email']
+        ], 404);
     }
 
+    // Vérifier le mot de passe
+    if (!\Hash::check($data['password'], $user->password)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Mot de passe incorrect',
+            'email' => $user->email
+        ], 401);
+    }
+
+    // Vérifier si le compte est actif
+    if (!$user->is_active) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Compte désactivé'
+        ], 403);
+    }
+
+    // Vérifier si c'est un mécanicien
+    if (!$user->isMecanicien()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Accès réservé aux mécaniciens',
+            'role' => $user->role
+        ], 403);
+    }
+
+    // Supprimer les anciens tokens (optionnel)
+    $user->tokens()->delete();
+
+    // Créer un nouveau token
+    $token = $user->createToken('flutter-app')->plainTextToken;
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Connexion réussie',
+        'token' => $token,
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'is_active' => $user->is_active
+        ]
+    ]);
+}
     // POST /api/logout
     public function logout(Request $request)
     {
