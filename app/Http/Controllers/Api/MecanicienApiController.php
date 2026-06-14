@@ -6,73 +6,47 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairOrder;
 use App\Models\InterventionNote;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class MecanicienApiController extends Controller
 {
     // POST /api/login
-   public function login(Request $request)
-{
-    $data = $request->validate([
-        'email'    => 'required|email',
-        'password' => 'required',
-    ]);
+    public function login(Request $request)
+    {
+        $data = $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required',
+        ]);
 
-    // Vérifier si l'utilisateur existe
-    $user = \App\Models\User::where('email', $data['email'])->first();
+        $user = \App\Models\User::where('email', $data['email'])->first();
 
-    if (!$user) {
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Utilisateur introuvable'], 404);
+        }
+
+        if (!Hash::check($data['password'], $user->password)) {
+            return response()->json(['success' => false, 'message' => 'Mot de passe incorrect'], 401);
+        }
+
+        if (!$user->is_active) {
+            return response()->json(['success' => false, 'message' => 'Compte désactivé'], 403);
+        }
+
+        if (!$user->isMecanicien()) {
+            return response()->json(['success' => false, 'message' => 'Accès réservé aux mécaniciens'], 403);
+        }
+
+        $user->tokens()->delete();
+
+        $token = $user->createToken('flutter-app')->plainTextToken;
+
         return response()->json([
-            'success' => false,
-            'message' => 'Utilisateur introuvable',
-            'email_recu' => $data['email']
-        ], 404);
+            'success' => true,
+            'token' => $token,
+            'user' => $user
+        ]);
     }
 
-    // Vérifier le mot de passe
-    if (!\Hash::check($data['password'], $user->password)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Mot de passe incorrect',
-            'email' => $user->email
-        ], 401);
-    }
-
-    // Vérifier si le compte est actif
-    if (!$user->is_active) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Compte désactivé'
-        ], 403);
-    }
-
-    // Vérifier si c'est un mécanicien
-    if (!$user->isMecanicien()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Accès réservé aux mécaniciens',
-            'role' => $user->role
-        ], 403);
-    }
-
-    // Supprimer les anciens tokens (optionnel)
-    $user->tokens()->delete();
-
-    // Créer un nouveau token
-    $token = $user->createToken('flutter-app')->plainTextToken;
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Connexion réussie',
-        'token' => $token,
-        'user' => [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role,
-            'is_active' => $user->is_active
-        ]
-    ]);
-}
     // POST /api/logout
     public function logout(Request $request)
     {
@@ -83,23 +57,33 @@ class MecanicienApiController extends Controller
     // GET /api/mes-taches
     public function mesTaches(Request $request)
     {
-        $orders = RepairOrder::with(['client:id,nom,prenom,telephone', 'vehicle:id,immatriculation,marque,modele,annee,couleur'])
+        $orders = RepairOrder::with([
+                'client:id,nom,prenom,telephone',
+                'vehicle:id,immatriculation,marque,modele,annee,couleur'
+            ])
             ->where('assigned_to', $request->user()->id)
             ->whereIn('statut', ['nouveau', 'en_attente_pieces', 'en_cours', 'probleme'])
-            ->orderByRaw("FIELD(urgence,'vip','urgent','normal')")
+            ->orderByRaw("
+                CASE urgence
+                    WHEN 'vip' THEN 1
+                    WHEN 'urgent' THEN 2
+                    WHEN 'normal' THEN 3
+                    ELSE 4
+                END
+            ")
             ->get()
             ->map(fn($o) => [
-                'id'                => $o->id,
-                'numero'            => $o->numero,
-                'statut'            => $o->statut,
-                'statut_label'      => $o->statut_label,
-                'urgence'           => $o->urgence,
-                'urgence_label'     => $o->urgence_label,
+                'id' => $o->id,
+                'numero' => $o->numero,
+                'statut' => $o->statut,
+                'statut_label' => $o->statut_label,
+                'urgence' => $o->urgence,
+                'urgence_label' => $o->urgence_label,
                 'description_panne' => $o->description_panne,
-                'pieces_estimees'   => $o->pieces_estimees,
-                'date_entree'       => $o->date_entree?->format('d/m/Y'),
-                'client'            => $o->client,
-                'vehicle'           => $o->vehicle,
+                'pieces_estimees' => $o->pieces_estimees,
+                'date_entree' => optional($o->date_entree)?->format('d/m/Y'),
+                'client' => $o->client,
+                'vehicle' => $o->vehicle,
             ]);
 
         return response()->json($orders);
@@ -108,23 +92,26 @@ class MecanicienApiController extends Controller
     // GET /api/mes-taches-terminees
     public function mesTachesTerminees(Request $request)
     {
-        $orders = RepairOrder::with(['client:id,nom,prenom,telephone', 'vehicle:id,immatriculation,marque,modele'])
+        $orders = RepairOrder::with([
+                'client:id,nom,prenom,telephone',
+                'vehicle:id,immatriculation,marque,modele'
+            ])
             ->where('assigned_to', $request->user()->id)
             ->where('statut', 'termine')
             ->orderBy('date_sortie_effective', 'desc')
             ->limit(20)
             ->get()
             ->map(fn($o) => [
-                'id'                => $o->id,
-                'numero'            => $o->numero,
-                'statut'            => $o->statut,
-                'statut_label'      => $o->statut_label,
-                'urgence'           => $o->urgence,
-                'urgence_label'     => $o->urgence_label,
+                'id' => $o->id,
+                'numero' => $o->numero,
+                'statut' => $o->statut,
+                'statut_label' => $o->statut_label,
+                'urgence' => $o->urgence,
+                'urgence_label' => $o->urgence_label,
                 'description_panne' => $o->description_panne,
-                'date_entree'       => $o->date_entree?->format('d/m/Y'),
-                'client'            => $o->client,
-                'vehicle'           => $o->vehicle,
+                'date_entree' => optional($o->date_entree)?->format('d/m/Y'),
+                'client' => $o->client,
+                'vehicle' => $o->vehicle,
             ]);
 
         return response()->json($orders);
@@ -139,29 +126,7 @@ class MecanicienApiController extends Controller
 
         $repair->load(['client', 'vehicle', 'notes.user:id,name']);
 
-        return response()->json([
-            'id'                => $repair->id,
-            'numero'            => $repair->numero,
-            'statut'            => $repair->statut,
-            'statut_label'      => $repair->statut_label,
-            'urgence'           => $repair->urgence,
-            'urgence_label'     => $repair->urgence_label,
-            'description_panne' => $repair->description_panne,
-            'pieces_estimees'   => $repair->pieces_estimees,
-            'notes_patron'      => $repair->notes_patron,
-            'date_entree'       => $repair->date_entree?->format('d/m/Y'),
-            'client'            => $repair->client,
-            'vehicle'           => $repair->vehicle,
-            'notes'             => $repair->notes->map(fn($n) => [
-                'id'             => $n->id,
-                'contenu'        => $n->contenu,
-                'photo_url'      => $n->photo_path ? asset('storage/' . $n->photo_path) : null,
-                'ancien_statut'  => $n->ancien_statut,
-                'nouveau_statut' => $n->nouveau_statut,
-                'auteur'         => $n->user->name,
-                'date'           => $n->created_at->format('d/m/Y H:i'),
-            ]),
-        ]);
+        return response()->json($repair);
     }
 
     // POST /api/taches/{id}/statut
@@ -177,7 +142,8 @@ class MecanicienApiController extends Controller
         ]);
 
         $ancienStatut = $repair->statut;
-        $updateData   = ['statut' => $data['statut']];
+
+        $updateData = ['statut' => $data['statut']];
 
         if ($data['statut'] === 'termine') {
             $updateData['date_sortie_effective'] = now();
@@ -187,15 +153,15 @@ class MecanicienApiController extends Controller
 
         $note = InterventionNote::create([
             'repair_order_id' => $repair->id,
-            'user_id'         => $request->user()->id,
-            'contenu'         => $data['contenu'],
-            'ancien_statut'   => $ancienStatut,
-            'nouveau_statut'  => $data['statut'],
+            'user_id' => $request->user()->id,
+            'contenu' => $data['contenu'],
+            'ancien_statut' => $ancienStatut,
+            'nouveau_statut' => $data['statut'],
         ]);
 
         return response()->json([
             'message' => 'Statut mis à jour.',
-            'statut'  => $repair->statut,
+            'statut' => $repair->statut,
             'note_id' => $note->id,
         ]);
     }
@@ -209,24 +175,25 @@ class MecanicienApiController extends Controller
 
         $data = $request->validate([
             'contenu' => 'required|string|max:1000',
-            'photo'   => 'nullable|image|max:4096',
+            'photo' => 'nullable|image|max:4096',
         ]);
 
         $photoPath = null;
+
         if ($request->hasFile('photo')) {
             $photoPath = $request->file('photo')->store('interventions', 'public');
         }
 
         $note = InterventionNote::create([
             'repair_order_id' => $repair->id,
-            'user_id'         => $request->user()->id,
-            'contenu'         => $data['contenu'],
-            'photo_path'      => $photoPath,
+            'user_id' => $request->user()->id,
+            'contenu' => $data['contenu'],
+            'photo_path' => $photoPath,
         ]);
 
         return response()->json([
-            'message'   => 'Note ajoutée.',
-            'note_id'   => $note->id,
+            'message' => 'Note ajoutée.',
+            'note_id' => $note->id,
             'photo_url' => $photoPath ? asset('storage/' . $photoPath) : null,
         ]);
     }
