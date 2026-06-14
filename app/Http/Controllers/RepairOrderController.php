@@ -17,7 +17,9 @@ class RepairOrderController extends Controller
             $query = RepairOrder::with(['client', 'vehicle', 'assignedTo', 'createdBy']);
 
             if ($search = $request->get('q')) {
-                $query->search($search);
+                if (method_exists(RepairOrder::class, 'scopeSearch')) {
+                    $query->search($search);
+                }
             }
 
             if ($statut = $request->get('statut')) {
@@ -28,12 +30,21 @@ class RepairOrderController extends Controller
                 $query->where('urgence', $urgence);
             }
 
-            $orders = $query->orderByRaw("FIELD(urgence,'vip','urgent','normal')")
+            $orders = $query
+                ->orderByRaw("
+                    CASE urgence
+                        WHEN 'vip' THEN 1
+                        WHEN 'urgent' THEN 2
+                        WHEN 'normal' THEN 3
+                        ELSE 4
+                    END
+                ")
                 ->orderBy('date_entree', 'desc')
                 ->paginate(20)
                 ->withQueryString();
 
             return view('repairs.index', compact('orders'));
+
         } catch (\Exception $e) {
             report($e);
             return response()->view('errors.500', [], 500);
@@ -42,18 +53,16 @@ class RepairOrderController extends Controller
 
     public function create(Request $request)
     {
-        $clients = Client::orderBy('nom')->get(['id', 'nom', 'prenom', 'telephone']);
+        $clients = Client::orderBy('nom')
+            ->get(['id', 'nom', 'prenom', 'telephone']);
 
-        $client = null;
-        $vehicle = null;
+        $client = $request->client_id
+            ? Client::with('vehicles')->find($request->client_id)
+            : null;
 
-        if ($request->client_id) {
-            $client = Client::with('vehicles')->find($request->client_id);
-        }
-
-        if ($request->vehicle_id) {
-            $vehicle = Vehicle::find($request->vehicle_id);
-        }
+        $vehicle = $request->vehicle_id
+            ? Vehicle::find($request->vehicle_id)
+            : null;
 
         return view('repairs.create', compact('clients', 'client', 'vehicle'));
     }
@@ -72,7 +81,7 @@ class RepairOrderController extends Controller
             'kilometrage_entree' => 'nullable|integer|min:0',
         ]);
 
-        $data['created_by'] = auth()->id();
+        $data['created_by'] = auth()->check() ? auth()->id() : null;
         $data['statut'] = 'nouveau';
 
         $order = RepairOrder::create($data);
@@ -83,7 +92,14 @@ class RepairOrderController extends Controller
 
     public function show(RepairOrder $repair)
     {
-        $repair->load(['client', 'vehicle', 'assignedTo', 'createdBy', 'notes.user', 'invoice']);
+        $repair->load([
+            'client',
+            'vehicle',
+            'assignedTo',
+            'createdBy',
+            'notes.user',
+            'invoice'
+        ]);
 
         $mecaniciens = User::where('role', 'mecanicien')->get();
 
@@ -99,7 +115,6 @@ class RepairOrderController extends Controller
 
         $repair->update([
             'assigned_to' => $data['assigned_to'],
-            'notes_patron' => $data['notes_patron'] ?? null,
         ]);
 
         $repair->load('assignedTo');
@@ -107,7 +122,7 @@ class RepairOrderController extends Controller
         InterventionNote::create([
             'repair_order_id' => $repair->id,
             'user_id' => auth()->id(),
-            'contenu' => "Assigné à {$repair->assignedTo?->name}" .
+            'contenu' => "Assigné à " . ($repair->assignedTo->name ?? 'inconnu') .
                 (!empty($data['notes_patron']) ? " — {$data['notes_patron']}" : ''),
             'ancien_statut' => $repair->statut,
             'nouveau_statut' => $repair->statut,
@@ -156,8 +171,20 @@ class RepairOrderController extends Controller
     {
         $orders = RepairOrder::with(['client', 'vehicle', 'notes'])
             ->where('assigned_to', auth()->id())
-            ->whereIn('statut', ['nouveau', 'en_attente_pieces', 'en_cours', 'probleme'])
-            ->orderByRaw("FIELD(urgence,'vip','urgent','normal')")
+            ->whereIn('statut', [
+                'nouveau',
+                'en_attente_pieces',
+                'en_cours',
+                'probleme'
+            ])
+            ->orderByRaw("
+                CASE urgence
+                    WHEN 'vip' THEN 1
+                    WHEN 'urgent' THEN 2
+                    WHEN 'normal' THEN 3
+                    ELSE 4
+                END
+            ")
             ->get();
 
         return view('repairs.mecanicien', compact('orders'));

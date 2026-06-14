@@ -14,10 +14,21 @@ class RepairOrder extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'numero', 'client_id', 'vehicle_id', 'created_by', 'assigned_to',
-        'description_panne', 'notes_patron', 'pieces_estimees', 'cout_estime',
-        'statut', 'urgence', 'kilometrage_entree',
-        'date_entree', 'date_sortie_prevue', 'date_sortie_effective',
+        'numero',
+        'client_id',
+        'vehicle_id',
+        'created_by',
+        'assigned_to',
+        'description_panne',
+        'notes_patron',
+        'pieces_estimees',
+        'cout_estime',
+        'statut',
+        'urgence',
+        'kilometrage_entree',
+        'date_entree',
+        'date_sortie_prevue',
+        'date_sortie_effective',
     ];
 
     protected $casts = [
@@ -27,7 +38,7 @@ class RepairOrder extends Model
         'cout_estime'           => 'decimal:2',
     ];
 
-    // ── Boot: auto-generate numero ─────────────────────────────
+    // ── Auto numéro ─────────────────────────────────────────
     protected static function booted(): void
     {
         static::creating(function (RepairOrder $order) {
@@ -39,35 +50,72 @@ class RepairOrder extends Model
         });
     }
 
-    // ── Relations ─────────────────────────────────────────────
-    public function client(): BelongsTo   { return $this->belongsTo(Client::class); }
-    public function vehicle(): BelongsTo  { return $this->belongsTo(Vehicle::class); }
-    public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
-    public function assignedTo(): BelongsTo { return $this->belongsTo(User::class, 'assigned_to'); }
-    public function notes(): HasMany      { return $this->hasMany(InterventionNote::class); }
-    public function invoice(): HasOne     { return $this->hasOne(Invoice::class); }
+    // ── RELATIONS ───────────────────────────────────────────
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
 
-    // ── Scopes ────────────────────────────────────────────────
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(InterventionNote::class);
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
+    // ── SCOPES ──────────────────────────────────────────────
     public function scopeActifs(Builder $query): Builder
     {
-        return $query->whereIn('statut', ['nouveau', 'en_attente_pieces', 'en_cours', 'probleme']);
+        return $query->whereIn('statut', [
+            'nouveau',
+            'en_attente_pieces',
+            'en_cours',
+            'probleme'
+        ]);
     }
 
     public function scopeSearch(Builder $query, string $term): Builder
     {
         $term = "%{$term}%";
-        return $query->where(function($q) use ($term) {
-            $q->where('numero', 'like', $term)
-              ->orWhere('description_panne', 'like', $term)
-              ->orWhereHas('client', fn($c) => $c->where('nom', 'like', $term)->orWhere('prenom', 'like', $term))
-              ->orWhereHas('vehicle', fn($v) => $v->where('immatriculation', 'like', $term));
+
+        return $query->where(function ($q) use ($term) {
+
+            $q->where('numero', 'ILIKE', $term)
+              ->orWhere('description_panne', 'ILIKE', $term)
+
+              ->orWhereHas('client', function ($c) use ($term) {
+                  $c->where('nom', 'ILIKE', $term)
+                    ->orWhere('prenom', 'ILIKE', $term);
+              })
+
+              ->orWhereHas('vehicle', function ($v) use ($term) {
+                  $v->where('immatriculation', 'ILIKE', $term);
+              });
         });
     }
 
-    // ── Computed ──────────────────────────────────────────────
+    // ── ACCESSORS ───────────────────────────────────────────
     public function getStatutLabelAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'nouveau'           => 'Nouveau',
             'en_attente_pieces' => 'En attente pièces',
             'en_cours'          => 'En cours',
@@ -80,7 +128,7 @@ class RepairOrder extends Model
 
     public function getStatutColorAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'nouveau'           => 'blue',
             'en_attente_pieces' => 'yellow',
             'en_cours'          => 'orange',
@@ -93,9 +141,9 @@ class RepairOrder extends Model
 
     public function getUrgenceLabelAttribute(): string
     {
-        return match($this->urgence) {
-            'urgent' => 'Urgent',
+        return match ($this->urgence) {
             'vip'    => 'VIP',
+            'urgent' => 'Urgent',
             default  => 'Normal',
         };
     }
