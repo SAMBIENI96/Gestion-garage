@@ -8,7 +8,7 @@ php artisan route:clear
 php artisan view:clear
 
 php artisan migrate --force
-php artisan db:seed --force
+php artisan db:seed --force || true
 
 php artisan storage:link
 
