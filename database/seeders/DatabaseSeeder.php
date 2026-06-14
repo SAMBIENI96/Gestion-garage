@@ -14,7 +14,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ── UTILISATEURS (SAFE - updateOrCreate) ───────────────
+        // ─────────────────────────────
+        // UTILISATEURS (SAFE)
+        // ─────────────────────────────
         $users = [
             [
                 'email' => 'patron@garage.local',
@@ -62,7 +64,9 @@ class DatabaseSeeder extends Seeder
         $mec1    = $createdUsers['kofi@garage.local'];
         $mec2    = $createdUsers['seydou@garage.local'];
 
-        // ── CLIENTS ───────────────────────────────────────────
+        // ─────────────────────────────
+        // CLIENTS (SAFE)
+        // ─────────────────────────────
         $clientsData = [
             ['prenom' => 'Jean', 'nom' => 'AGOSSOU', 'telephone' => '+229 96 11 22 33', 'email' => 'jean.agossou@email.com', 'adresse' => 'Cotonou'],
             ['prenom' => 'Fatima', 'nom' => 'HOUNSA', 'telephone' => '+229 96 44 55 66', 'email' => null, 'adresse' => 'Cotonou'],
@@ -74,11 +78,16 @@ class DatabaseSeeder extends Seeder
         $clients = [];
 
         foreach ($clientsData as $c) {
-            $clients[] = Client::create($c + ['created_by' => $accueil->id]);
+            $clients[] = Client::updateOrCreate(
+                ['telephone' => $c['telephone']],
+                $c + ['created_by' => $accueil->id]
+            );
         }
 
-        // ── VEHICULES ─────────────────────────────────────────
-        $vehicles = [
+        // ─────────────────────────────
+        // VEHICULES (SAFE)
+        // ─────────────────────────────
+        $vehiclesData = [
             ['client_id' => $clients[0]->id, 'immatriculation' => 'BJ-1234-AA', 'marque' => 'Toyota', 'modele' => 'Corolla', 'annee' => 2018, 'kilometrage' => 85000, 'couleur' => 'Blanc'],
             ['client_id' => $clients[1]->id, 'immatriculation' => 'BJ-5678-BB', 'marque' => 'Honda', 'modele' => 'CR-V', 'annee' => 2020, 'kilometrage' => 42000, 'couleur' => 'Gris'],
             ['client_id' => $clients[2]->id, 'immatriculation' => 'BJ-9012-CC', 'marque' => 'Peugeot', 'modele' => '308', 'annee' => 2016, 'kilometrage' => 121000, 'couleur' => 'Rouge'],
@@ -86,17 +95,22 @@ class DatabaseSeeder extends Seeder
             ['client_id' => $clients[4]->id, 'immatriculation' => 'BJ-7890-EE', 'marque' => 'Renault', 'modele' => 'Duster', 'annee' => 2017, 'kilometrage' => 98000, 'couleur' => 'Blanc'],
         ];
 
-        $vehiclesCreated = [];
+        $vehicles = [];
 
-        foreach ($vehicles as $v) {
-            $vehiclesCreated[] = Vehicle::create($v);
+        foreach ($vehiclesData as $v) {
+            $vehicles[] = Vehicle::updateOrCreate(
+                ['immatriculation' => $v['immatriculation']],
+                $v
+            );
         }
 
-        // ── ORDRES DE REPARATION ──────────────────────────────
-        $orders = [
+        // ─────────────────────────────
+        // ORDRES DE RÉPARATION (SAFE)
+        // ─────────────────────────────
+        $ordersData = [
             [
                 'client_id' => $clients[0]->id,
-                'vehicle_id' => $vehiclesCreated[0]->id,
+                'vehicle_id' => $vehicles[0]->id,
                 'created_by' => $accueil->id,
                 'assigned_to' => $mec1->id,
                 'description_panne' => 'Freins usés + fuite huile',
@@ -110,21 +124,34 @@ class DatabaseSeeder extends Seeder
             ],
         ];
 
-        $ordersCreated = [];
+        $orders = [];
 
-        foreach ($orders as $o) {
-            $ordersCreated[] = RepairOrder::create($o);
+        foreach ($ordersData as $o) {
+            $orders[] = RepairOrder::updateOrCreate(
+                [
+                    'client_id' => $o['client_id'],
+                    'vehicle_id' => $o['vehicle_id'],
+                    'description_panne' => $o['description_panne'],
+                ],
+                $o
+            );
         }
 
-        // ── NOTES ─────────────────────────────────────────────
-        InterventionNote::create([
-            'repair_order_id' => $ordersCreated[0]->id,
-            'user_id' => $mec1->id,
-            'contenu' => 'Diagnostic effectué, pièces à remplacer.',
-            'ancien_statut' => 'nouveau',
-            'nouveau_statut' => 'en_cours',
-        ]);
+        // ─────────────────────────────
+        // NOTES
+        // ─────────────────────────────
+        InterventionNote::updateOrCreate(
+            [
+                'repair_order_id' => $orders[0]->id,
+                'contenu' => 'Diagnostic effectué, pièces à remplacer.',
+            ],
+            [
+                'user_id' => $mec1->id,
+                'ancien_statut' => 'nouveau',
+                'nouveau_statut' => 'en_cours',
+            ]
+        );
 
-        $this->command->info('✅ Seed exécuté avec succès (SAFE MODE)');
+        $this->command->info('✅ Seed COMPLET SAFE exécuté avec succès');
     }
 }

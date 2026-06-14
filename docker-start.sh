@@ -1,16 +1,32 @@
 #!/bin/bash
 set -e
 
-echo "Demarrage AutoGest Pro..."
+echo "🚀 Demarrage AutoGest Pro..."
 
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+# ── Clear caches (sécurisé production)
+php artisan config:clear || true
+php artisan route:clear || true
+php artisan view:clear || true
+php artisan cache:clear || true
 
+# ── Migrations (obligatoire en prod)
+echo "📦 Migration database..."
 php artisan migrate --force
+
+# ── Seeder (SAFE: ne casse pas le deploy si doublons)
+echo "🌱 Seeding database..."
 php artisan db:seed --force || true
 
-php artisan storage:link
+# ── Storage link (évite crash si déjà existant)
+echo "🔗 Storage link..."
+php artisan storage:link || true
 
-echo "Serveur pret !"
+# ── Optimisation production (important)
+echo "⚡ Optimisation..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+echo "✅ Serveur pret !"
+
 apache2-foreground
