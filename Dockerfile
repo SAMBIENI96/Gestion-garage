@@ -1,3 +1,12 @@
+FROM node:22-alpine AS frontend
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY resources ./resources
+COPY vite.config.js .
+RUN npm run build
+
 FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y \
@@ -21,6 +30,8 @@ WORKDIR /var/www/html
 COPY . .
 
 RUN composer install --optimize-autoloader --no-dev --no-interaction
+
+COPY --from=frontend /app/public/build public/build
 
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache

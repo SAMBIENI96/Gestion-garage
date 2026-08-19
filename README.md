@@ -2,10 +2,10 @@
 🔧 Application web de gestion de garage automobile — clients, réparations, facturation et stock en un seul endroit.
 
 ## Stack technique
-- **Backend** : Laravel 11
+- **Backend** : Laravel 12
 - **Frontend Web** : Blade + CSS custom (thème sombre)
 - **PWA Mécanicien** : HTML / CSS / JS pur
-- **Base de données** : MySQL (XAMPP)
+- **Base de données** : SQLite par défaut, MySQL et PostgreSQL compatibles
 - **Auth API** : Laravel Sanctum
 
 ## Fonctionnalités
@@ -32,6 +32,10 @@ php artisan migrate
 php artisan db:seed
 php artisan serve
 ```
+
+La connexion à la base de données se configure dans `.env` avec `DB_CONNECTION`.
+L'exemple fourni utilise SQLite ; pour MySQL ou PostgreSQL, renseigner également
+les paramètres `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` et `DB_PASSWORD`.
 
 ## PWA Mécanicien
 Accessible via `http://IP:8000/mecanicien` — installable sur Android/iOS depuis Chrome.
