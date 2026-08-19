@@ -29,9 +29,9 @@ class Invoice extends Model
     {
         static::creating(function (Invoice $inv) {
             if (empty($inv->numero)) {
-                $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->count() + 1;
-                $inv->numero = sprintf('FAC-%d-%04d', $year, $count);
+                $year = now()->year;
+                $number = DocumentSequence::next('FAC', $year);
+                $inv->numero = sprintf('FAC-%d-%04d', $year, $number);
             }
         });
     }
