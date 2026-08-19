@@ -43,9 +43,9 @@ class RepairOrder extends Model
     {
         static::creating(function (RepairOrder $order) {
             if (empty($order->numero)) {
-                $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->count() + 1;
-                $order->numero = sprintf('OR-%d-%04d', $year, $count);
+                $year = now()->year;
+                $number = DocumentSequence::next('OR', $year);
+                $order->numero = sprintf('OR-%d-%04d', $year, $number);
             }
         });
     }
@@ -98,16 +98,17 @@ class RepairOrder extends Model
 
         return $query->where(function ($q) use ($term) {
 
-            $q->where('numero', 'ILIKE', $term)
-              ->orWhere('description_panne', 'ILIKE', $term)
+            // LOWER() + LIKE fonctionne avec SQLite, MySQL et PostgreSQL.
+            $q->whereRaw('LOWER(numero) LIKE ?', [$term])
+              ->orWhereRaw('LOWER(description_panne) LIKE ?', [$term])
 
               ->orWhereHas('client', function ($c) use ($term) {
-                  $c->where('nom', 'ILIKE', $term)
-                    ->orWhere('prenom', 'ILIKE', $term);
+                  $c->whereRaw('LOWER(nom) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(prenom) LIKE ?', [$term]);
               })
 
               ->orWhereHas('vehicle', function ($v) use ($term) {
-                  $v->where('immatriculation', 'ILIKE', $term);
+                  $v->whereRaw('LOWER(immatriculation) LIKE ?', [$term]);
               });
         });
     }
