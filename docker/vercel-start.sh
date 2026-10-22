@@ -34,6 +34,10 @@ PHP
 
 [ -n "$APP_KEY" ] || diagnostic "La variable APP_KEY est absente. Générez-la avec « php artisan key:generate --show » et ajoutez-la dans Vercel."
 
+# La clé doit faire 32 octets : « base64: » suivi de 44 caractères
+php -r '$k = getenv("APP_KEY"); if (str_starts_with($k, "base64:")) { $k = base64_decode(substr($k, 7), true); } exit(is_string($k) && strlen($k) === 32 ? 0 : 1);' \
+    || diagnostic "La variable APP_KEY est invalide. Elle doit être copiée en entier, préfixe compris : « base64: » suivi de 44 caractères, sans espace ni guillemets."
+
 if [ -z "$DATABASE_URL" ] && [ -z "$DB_HOST" ]; then
     diagnostic "La variable DATABASE_URL est absente. Collez l'adresse de connexion de votre base Neon (sans « -pooler »)."
 fi
@@ -48,5 +52,8 @@ if [ "$DEMO_SEED" = "true" ]; then
     out=$(php artisan demo:seed 2>&1) || diagnostic "Échec de la création des comptes de démonstration." "$out"
     echo "$out"
 fi
+
+# Requête de test : la page de connexion doit s'afficher
+out=$(php /usr/local/bin/smoke.php 2>&1) || diagnostic "L'application démarre mais la page de connexion plante." "$out"
 
 exec frankenphp run --config /etc/frankenphp/Caddyfile

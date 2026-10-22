@@ -38,6 +38,7 @@ COPY --from=dependencies --chown=www-data:www-data /app /app
 COPY --chown=www-data:www-data Caddyfile /etc/frankenphp/Caddyfile
 COPY --chown=www-data:www-data docker/php.ini /usr/local/etc/php/conf.d/zz-autogest.ini
 COPY --chown=www-data:www-data docker/vercel-start.sh /usr/local/bin/vercel-start.sh
+COPY --chown=www-data:www-data docker/smoke.php /usr/local/bin/smoke.php
 
 RUN chmod +x /usr/local/bin/vercel-start.sh \
     && setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
