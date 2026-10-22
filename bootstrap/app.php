@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health:   '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Derrière le proxy HTTPS de l'hébergeur : URLs en https, IP réelle du client
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);

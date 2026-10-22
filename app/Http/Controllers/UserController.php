@@ -10,8 +10,9 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::orderBy('role')->orderBy('name')->get();
-        return view('users.index', compact('users'));
+        $users   = User::approved()->orderBy('role')->orderBy('name')->get();
+        $pending = User::pending()->latest()->get();
+        return view('users.index', compact('users', 'pending'));
     }
 
     public function create()
@@ -30,6 +31,7 @@ class UserController extends Controller
         ]);
 
         $data['password'] = Hash::make($data['password']);
+        $data['approved_at'] = now();
         User::create($data);
 
         return redirect()->route('users.index')->with('success', 'Utilisateur créé.');
@@ -60,8 +62,35 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'Utilisateur mis à jour.');
     }
 
+    public function approve(Request $request, User $user)
+    {
+        abort_unless($user->isPending(), 404);
+
+        $data = $request->validate(['role' => 'required|in:accueil,mecanicien']);
+
+        $user->update([
+            'role'        => $data['role'],
+            'is_active'   => true,
+            'approved_at' => now(),
+        ]);
+
+        return back()->with('success', "Accès accordé à {$user->name}.");
+    }
+
+    public function reject(User $user)
+    {
+        abort_unless($user->isPending(), 404);
+
+        $user->delete();
+
+        return back()->with('success', 'Demande refusée.');
+    }
+
     public function toggleActive(User $user)
     {
+        if ($user->isPending()) {
+            return back()->with('error', 'Validez d\'abord la demande d\'accès.');
+        }
         if ($user->isPatron()) {
             return back()->with('error', 'Impossible de désactiver le patron.');
         }

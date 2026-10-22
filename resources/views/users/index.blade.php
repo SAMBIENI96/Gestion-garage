@@ -7,6 +7,52 @@
 @endpush
 
 @section('content')
+@if($pending->isNotEmpty())
+<section class="card pending-card" aria-labelledby="pending-title">
+    <div class="pending-head">
+        <div>
+            <h2 class="card-title" id="pending-title" style="margin:0">Demandes d'accès <span class="nav-badge" style="margin-left:6px">{{ $pending->count() }}</span></h2>
+            <p class="card-sub" style="margin:4px 0 0">Ces personnes se sont inscrites. Choisissez leur rôle puis accordez l'accès, ou refusez la demande.</p>
+        </div>
+    </div>
+
+    <ul class="request-list">
+        @foreach($pending as $req)
+        <li class="request">
+            @if($req->avatar_url)
+                <img class="avatar" src="{{ $req->avatar_url }}" alt="" referrerpolicy="no-referrer">
+            @else
+                <span class="avatar" aria-hidden="true">{{ $req->initiales }}</span>
+            @endif
+            <div class="request-info">
+                <div class="request-name">{{ $req->name }}</div>
+                <div class="request-meta">
+                    {{ $req->email }}@if($req->phone) · {{ $req->phone }}@endif
+                    · {{ $req->created_at?->diffForHumans() }}
+                    · <span class="badge {{ $req->google_id ? 'badge-blue' : 'badge-gray' }}">{{ $req->google_id ? 'Google' : 'Formulaire' }}</span>
+                </div>
+            </div>
+            <form action="{{ route('users.approve', $req) }}" method="POST" class="request-actions">
+                @csrf
+                <label class="sr-only" for="role-{{ $req->id }}">Rôle</label>
+                <select class="form-select" name="role" id="role-{{ $req->id }}" style="width:auto">
+                    <option value="accueil" @selected($req->role === 'accueil')>Agent d'accueil</option>
+                    <option value="mecanicien" @selected($req->role === 'mecanicien')>Mécanicien</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm"><span>Accorder l'accès</span></button>
+                <button type="submit" class="btn btn-ghost btn-sm" form="reject-{{ $req->id }}"><span>Refuser</span></button>
+            </form>
+            <form id="reject-{{ $req->id }}" action="{{ route('users.reject', $req) }}" method="POST" hidden
+                  onsubmit="return confirm('Refuser cette demande d\'accès ?')">
+                @csrf
+                @method('DELETE')
+            </form>
+        </li>
+        @endforeach
+    </ul>
+</section>
+@endif
+
 <div class="card">
     <div class="table-wrap">
         <table class="tbl">

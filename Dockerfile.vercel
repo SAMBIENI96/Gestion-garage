@@ -1,0 +1,58 @@
+# Image pour Vercel (fonctions en conteneur, FrankenPHP).
+# D'après le guide officiel : https://vercel.com/kb/guide/laravel-php-with-docker
+# Base de données : PostgreSQL externe obligatoire (Neon via le Marketplace Vercel),
+# car Vercel peut lancer plusieurs instances qui ne partagent pas leur disque.
+FROM dunglas/frankenphp:1-php8.4-bookworm AS base
+
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && install-php-extensions intl zip pdo_pgsql opcache
+
+WORKDIR /app
+
+FROM base AS dependencies
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader \
+    --prefer-dist
+
+COPY . .
+RUN mkdir -p \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && composer dump-autoload --no-dev --classmap-authoritative \
+    && php artisan package:discover --ansi \
+    && php artisan view:cache
+
+FROM base AS runtime
+
+COPY --from=dependencies --chown=www-data:www-data /app /app
+COPY --chown=www-data:www-data Caddyfile /etc/frankenphp/Caddyfile
+COPY --chown=www-data:www-data docker/php.ini /usr/local/etc/php/conf.d/zz-autogest.ini
+COPY --chown=www-data:www-data docker/vercel-start.sh /usr/local/bin/vercel-start.sh
+
+RUN chmod +x /usr/local/bin/vercel-start.sh \
+    && setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
+    && chown -R www-data:www-data /config/caddy /data/caddy
+
+# Sessions et cache en base : partagés entre toutes les instances
+ENV PORT=80 \
+    APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    DB_CONNECTION=pgsql \
+    CACHE_STORE=database \
+    SESSION_DRIVER=database \
+    QUEUE_CONNECTION=sync
+
+USER www-data
+
+CMD ["/usr/local/bin/vercel-start.sh"]

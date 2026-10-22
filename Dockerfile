@@ -1,43 +1,41 @@
-FROM node:22-alpine AS frontend
+# Image de production AutoGest Pro : PHP 8.3 + Apache.
+# Base de données : SQLite dans le conteneur par défaut (démo réinitialisée à chaque
+# démarrage), ou PostgreSQL externe avec DB_CONNECTION=pgsql et DATABASE_URL.
+# Le CSS/JS est statique (public/css, public/js) : aucune étape Node n'est nécessaire.
+FROM php:8.3-apache
 
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY resources ./resources
-COPY vite.config.js .
-RUN npm run build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq-dev libzip-dev unzip \
+    && docker-php-ext-install pdo_pgsql zip bcmath opcache \
+    && apt-get purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/*
 
-FROM php:8.2-apache
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-RUN apt-get update && apt-get install -y \
-    libpng-dev libonig-dev libxml2-dev \
-    zip unzip git curl libzip-dev libpq-dev \
-    && docker-php-ext-install \
-    pdo pdo_pgsql pdo_mysql mbstring exif pcntl bcmath gd zip
-
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
+# Apache : racine sur public/, réécriture d'URL pour Laravel
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf \
+    && echo "ServerName localhost" >> /etc/apache2/apache2.conf \
+    && a2enmod rewrite headers
 
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/sites-available/*.conf
-
-RUN a2enmod rewrite headers
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+COPY docker/php.ini /usr/local/etc/php/conf.d/zz-autogest.ini
 
 WORKDIR /var/www/html
+
+# Dépendances PHP d'abord (couche mise en cache tant que composer.lock ne change pas)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-progress --no-scripts --no-autoloader --prefer-dist
+
 COPY . .
+RUN composer dump-autoload --optimize --no-dev \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache
 
-RUN composer install --optimize-autoloader --no-dev --no-interaction
-
-COPY --from=frontend /app/public/build public/build
-
-RUN chown -R www-data:www-data storage bootstrap/cache
-RUN chmod -R 775 storage bootstrap/cache
-
-COPY docker-start.sh /usr/local/bin/start.sh
+COPY docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
-EXPOSE 80
+# L'hébergeur fournit PORT ; 8080 par défaut
+ENV PORT=8080
+EXPOSE 8080
 CMD ["/usr/local/bin/start.sh"]

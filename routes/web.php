@@ -8,6 +8,9 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\RepairOrderController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\GoogleAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,7 +19,13 @@ use App\Http\Controllers\UserController;
 */
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+
+    Route::get('/inscription',  [RegisterController::class, 'show'])->name('register');
+    Route::post('/inscription', [RegisterController::class, 'store'])->middleware('throttle:5,1');
+
+    Route::get('/auth/google',          [GoogleAuthController::class, 'redirect'])->name('auth.google');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
@@ -30,6 +39,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ── Paramètres (tous les rôles) ────────────────────────────
+    Route::get('/parametres',               [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::patch('/parametres/theme',       [SettingsController::class, 'updateTheme'])->name('settings.theme');
+    Route::patch('/parametres/profil',      [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::put('/parametres/mot-de-passe',  [SettingsController::class, 'updatePassword'])->name('settings.password');
 
     // ── Clients (accueil + patron) ─────────────────────────────
     Route::middleware('role:patron,accueil')->group(function () {
@@ -79,6 +94,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])
              ->name('users.toggleActive');
+        Route::post('/users/{user}/approuver', [UserController::class, 'approve'])->name('users.approve');
+        Route::delete('/users/{user}/refuser', [UserController::class, 'reject'])->name('users.reject');
     });
 });
 

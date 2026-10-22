@@ -53,8 +53,9 @@ class DatabaseSeeder extends Seeder
                     'name'      => $u['name'],
                     'phone'     => $u['phone'],
                     'role'      => $u['role'],
-                    'password'  => Hash::make('password'),
-                    'is_active' => true,
+                    'password'    => Hash::make('password'),
+                    'is_active'   => true,
+                    'approved_at' => now(),
                 ]
             );
         }

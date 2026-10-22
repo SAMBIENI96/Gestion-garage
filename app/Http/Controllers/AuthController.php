@@ -30,6 +30,10 @@ class AuthController extends Controller
 
         if (!$user->is_active) {
             Auth::logout();
+            if ($user->isPending()) {
+                return back()->withInput($request->only('email'))
+                    ->with('status', 'Votre demande est en cours de validation par le patron.');
+            }
             return back()->withErrors(['email' => 'Compte désactivé. Contactez le patron.']);
         }
 

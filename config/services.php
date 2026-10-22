@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // Connexion « Continuer avec Google » (Laravel Socialite).
+    // Identifiants OAuth : console.cloud.google.com → API et services → Identifiants.
+    'google' => [
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect'      => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
 ];

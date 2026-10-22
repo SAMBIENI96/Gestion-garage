@@ -40,7 +40,7 @@
 
             <div id="lignes-container">
                 <!-- Ligne d'exemple -->
-                <div class="ligne-row" style="display:grid;grid-template-columns:1fr 80px 120px 100px 36px;gap:8px;margin-bottom:10px;align-items:center">
+                <div class="ligne-row" style="display:grid;grid-template-columns:1fr 110px 80px 120px 38px;gap:8px;margin-bottom:10px;align-items:center">
                     <input class="form-input" type="text" name="lignes[0][description]" placeholder="Description" required>
                     <select class="form-select" name="lignes[0][type]">
                         <option value="piece">Pièce</option>
@@ -110,7 +110,7 @@ function addLigne() {
     const i = ligneIndex++;
     const div = document.createElement('div');
     div.className = 'ligne-row';
-    div.style = 'display:grid;grid-template-columns:1fr 80px 120px 100px 36px;gap:8px;margin-bottom:10px;align-items:center';
+    div.style = 'display:grid;grid-template-columns:1fr 110px 80px 120px 38px;gap:8px;margin-bottom:10px;align-items:center';
     div.innerHTML = `
         <input class="form-input" type="text" name="lignes[${i}][description]" placeholder="Description" required>
         <select class="form-select" name="lignes[${i}][type]">
