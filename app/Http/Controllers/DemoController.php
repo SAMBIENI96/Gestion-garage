@@ -13,12 +13,13 @@ class DemoController extends Controller
     {
         abort_unless(Demo::enabled() && in_array($role, ['patron', 'accueil', 'mecanicien'], true), 404);
 
-        // Le mécanicien découvre l'application mobile, conçue pour lui
+        $user = Demo::account($role);
+
+        // Le mécanicien découvre l'application mobile, conçue pour lui (session de démo)
         if ($role === 'mecanicien') {
-            return redirect('/mecanicien/?demo=1');
+            return MecanicienAppController::redirectToApp($user, demo: true);
         }
 
-        $user = Demo::account($role);
         Auth::login($user);
         $request->session()->regenerate();
 

@@ -39,6 +39,11 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        // Le mécanicien travaille dans son application mobile
+        if ($user->isMecanicien()) {
+            return redirect()->route('mecanicien.handoff');
+        }
+
         return redirect()->route('dashboard');
     }
 

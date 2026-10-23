@@ -11,10 +11,41 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
     del(k) { try { localStorage.removeItem(k); } catch {} },
   };
+  const sess = {
+    get(k, d = null) { try { const v = sessionStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
+    del(k) { try { sessionStorage.removeItem(k); } catch {} },
+  };
+
+  /* Deux sessions bien séparées :
+     - réelle : jeton gardé sur l'appareil (localStorage) ;
+     - démo   : jeton gardé seulement dans cet onglet, avec « #demo » dans l'adresse.
+     Rouvrir l'application normalement ne retombe donc jamais dans la démo. */
+  function readSession() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (h.get('connexion')) { // arrivée depuis la page d'accueil (identifiants ou Google)
+      store.set('ag_token', h.get('connexion')); store.del('ag_user'); store.del('ag_cache');
+      sess.del('ag_demo_token'); sess.del('ag_demo_user');
+      history.replaceState(null, '', location.pathname + location.search);
+      return { token: h.get('connexion'), user: null, demo: false };
+    }
+    if (h.get('demo')) { // bouton « Démo → Mécanicien » de la page d'accueil
+      sess.set('ag_demo_token', h.get('demo')); sess.del('ag_demo_user');
+      history.replaceState(null, '', location.pathname + '#demo');
+      return { token: h.get('demo'), user: null, demo: true };
+    }
+    if (location.hash === '#demo' && sess.get('ag_demo_token')) { // rechargement pendant la démo
+      return { token: sess.get('ag_demo_token'), user: JSON.parse(sess.get('ag_demo_user', 'null')), demo: true };
+    }
+    sess.del('ag_demo_token'); sess.del('ag_demo_user');
+    return { token: store.get('ag_token'), user: JSON.parse(store.get('ag_user', 'null')), demo: false };
+  }
+  const session = readSession();
 
   const state = {
-    token: store.get('ag_token'),
-    user: JSON.parse(store.get('ag_user', 'null')),
+    token: session.token,
+    user: session.user,
+    demo: session.demo,
     tasks: [],
     done: [],
     filter: 'all',
@@ -111,8 +142,9 @@
     btn.classList.add('loading'); btn.disabled = true;
     try {
       const data = await api('/login', { method: 'POST', json: { email, password } });
-      state.token = data.token; state.user = data.user;
-      store.set('ag_token', data.token); store.set('ag_user', JSON.stringify(data.user));
+      state.token = data.token; state.demo = false;
+      store.set('ag_token', data.token);
+      saveUser(data.user);
       if (data.user.theme) applyTheme(data.user.theme);
       $('#password').value = '';
       enterApp();
@@ -123,46 +155,51 @@
     } finally { btn.classList.remove('loading'); btn.disabled = false; }
   }
 
-  // Démo : connexion du mécanicien de démonstration sans identifiants
-  async function demoLogin() {
-    const btn = $('#demo-btn');
-    btn.classList.add('loading'); btn.disabled = true;
-    try {
-      const data = await api('/demo-login', { method: 'POST' });
-      state.token = data.token; state.user = data.user;
-      store.set('ag_token', data.token); store.set('ag_user', JSON.stringify(data.user));
-      history.replaceState(null, '', '/mecanicien/');
-      enterApp();
-      toast('Bienvenue dans la démo ! Vous êtes Kofi, mécanicien.', 'info');
-    } catch (ex) {
-      toast(ex.status === 404 ? 'La démo n\'est pas activée sur ce serveur.' : 'Impossible de lancer la démo. Réessayez.', 'error');
-    } finally { btn.classList.remove('loading'); btn.disabled = false; }
+  function saveUser(u) {
+    state.user = u;
+    if (state.demo) sess.set('ag_demo_user', JSON.stringify(u));
+    else store.set('ag_user', JSON.stringify(u));
+    paintUser();
   }
 
-  async function checkDemo() {
-    try {
-      const { enabled } = await api('/demo');
-      $('#demo-card').hidden = $('#demo-or').hidden = !enabled;
-      if (enabled && new URLSearchParams(location.search).get('demo') === '1') demoLogin();
-    } catch {}
-  }
-
-  async function logout(message) {
-    if (state.token && !message) api('/logout', { method: 'POST' }).catch(() => {});
+  function clearSession() {
+    if (state.demo) { sess.del('ag_demo_token'); sess.del('ag_demo_user'); }
+    else { store.del('ag_token'); store.del('ag_user'); store.del('ag_cache'); }
     state.token = null; state.user = null; state.tasks = []; state.done = []; state.knownIds = null;
-    store.del('ag_token'); store.del('ag_user');
-    show('login');
-    checkDemo();
-    if (message) toast(message, 'error');
   }
 
-  function enterApp() {
+  // message fourni = session expirée : on redemande les identifiants ici.
+  // Sinon (bouton « Se déconnecter ») : jeton révoqué puis retour à la page d'accueil.
+  async function logout(message) {
+    const token = state.token;
+    clearSession();
+    if (message) {
+      state.demo = false;
+      history.replaceState(null, '', location.pathname);
+      show('login');
+      toast(message, 'error');
+      return;
+    }
+    if (token) {
+      await Promise.race([
+        fetch(API + '/logout', { method: 'POST', headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } }).catch(() => {}),
+        new Promise((r) => setTimeout(r, 1500)),
+      ]);
+    }
+    location.replace('/login');
+  }
+
+  function paintUser() {
     const u = state.user || {};
     const first = (u.name || 'Mécanicien').split(' ')[0];
     $('#hello-name').textContent = 'Bonjour ' + first;
-    $('#today').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     setAvatar($('#header-avatar'), u);
-    $('#demo-chip').hidden = !u.demo;
+    $('#demo-chip').hidden = !state.demo;
+  }
+
+  function enterApp() {
+    $('#today').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    paintUser();
     show('app');
     const start = new URLSearchParams(location.search).get('tab');
     tab(['tasks', 'done', 'profile'].includes(start) ? start : 'tasks');
@@ -189,11 +226,11 @@
       }
       state.knownIds = ids;
       state.tasks = tasks; state.done = done;
-      store.set('ag_cache', JSON.stringify({ tasks, done }));
+      if (!state.demo) store.set('ag_cache', JSON.stringify({ tasks, done }));
       render();
     } catch (ex) {
       if (ex.message === '401') return;
-      const cache = JSON.parse(store.get('ag_cache', 'null'));
+      const cache = state.demo ? null : JSON.parse(store.get('ag_cache', 'null'));
       if (cache && !state.tasks.length) { state.tasks = cache.tasks; state.done = cache.done; render(); }
       if (!state.tasks.length) $('#list').innerHTML = emptyHTML('wifi-off', 'Connexion impossible', 'Vérifiez votre réseau puis réessayez.', true, 'var(--soft-yellow)', 'var(--yellow)');
       else if (!silent) toast('Impossible d\'actualiser. Données hors ligne affichées.', 'error');
@@ -291,7 +328,7 @@
 
   /* ── Détail ──────────────────────────────────────────────────── */
   async function openDetail(id, push = true) {
-    if (push) history.pushState({ detail: id }, '', '#ordre-' + id);
+    if (push) history.pushState({ detail: id }, ''); // l'adresse ne change pas (garde « #demo »)
     state.photo = null;
     const summary = [...state.tasks, ...state.done].find((t) => t.id === id);
     $('#d-num').textContent = summary?.numero || '…';
@@ -467,7 +504,6 @@
       case 'refresh': return load();
       case 'back': return history.length > 1 ? history.back() : show('app');
       case 'logout': return logout();
-      case 'demo': return demoLogin();
       case 'toggle-theme': return applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
       case 'reveal': {
         const input = $('#password'); const shown = input.type === 'password';
@@ -527,11 +563,12 @@
   applyTheme(store.get('ag-theme', 'system'));
   setOnline();
   pullToRefresh();
-  if (state.token) {
+  if (new URLSearchParams(location.search).get('demo') === '1') {
+    location.replace('/login'); // ancien lien de démo : la démo se lance depuis la page d'accueil
+  } else if (state.token) {
     enterApp();
-    api('/me').then((u) => { u.demo = state.user?.demo; state.user = u; store.set('ag_user', JSON.stringify(u)); setAvatar($('#header-avatar'), u); }).catch(() => {});
+    api('/me').then(saveUser).catch(() => {});
   } else {
     show('login');
-    checkDemo();
   }
 })();

@@ -23,8 +23,7 @@ class DemoModeTest extends TestCase
     {
         $this->get('/login')->assertDontSee('Essayer la démo');
         $this->post('/demo/patron')->assertNotFound();
-        $this->postJson('/api/demo-login')->assertNotFound();
-        $this->getJson('/api/demo')->assertJson(['enabled' => false]);
+        $this->post('/demo/mecanicien')->assertNotFound();
     }
 
     public function test_one_click_login_seeds_data_and_shows_banner(): void
@@ -39,14 +38,25 @@ class DemoModeTest extends TestCase
         $this->get('/')->assertSee('Mode démo');
     }
 
-    public function test_mechanic_demo_opens_the_mobile_app_with_a_token(): void
+    public function test_mechanic_demo_opens_the_mobile_app_in_a_demo_session(): void
     {
         $this->enableDemo();
 
-        $this->post('/demo/mecanicien')->assertRedirect('/mecanicien/?demo=1');
+        $location = $this->post('/demo/mecanicien')->assertRedirect()->headers->get('Location');
 
-        $token = $this->postJson('/api/demo-login')->assertOk()->json('token');
+        $this->assertStringContainsString('/mecanicien/#demo=', $location);
+        $this->assertGuest(); // aucune session web : la démo vit dans l'application
+        $token = rawurldecode(explode('#demo=', $location)[1]);
         $this->withToken($token)->getJson('/api/mes-taches')->assertOk()->assertJsonCount(3);
+    }
+
+    public function test_demo_logout_returns_to_the_home_page(): void
+    {
+        $this->enableDemo();
+        $this->post('/demo/patron');
+
+        $this->post('/logout')->assertRedirect('/login');
+        $this->assertGuest();
     }
 
     public function test_demo_accounts_cannot_change_credentials_or_manage_users(): void

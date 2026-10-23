@@ -48,23 +48,6 @@ class MecanicienApiController extends Controller
         ]);
     }
 
-    // GET /api/demo : l'application affiche le bouton « Essayer la démo » si activé
-    public function demoStatus()
-    {
-        return response()->json(['enabled' => Demo::enabled()]);
-    }
-
-    // POST /api/demo-login : connexion du mécanicien de démonstration sans identifiants
-    public function demoLogin()
-    {
-        abort_unless(Demo::enabled(), 404);
-
-        $user = Demo::account('mecanicien');
-        $token = $user->createToken('pwa-demo')->plainTextToken;
-
-        return response()->json(['success' => true, 'token' => $token, 'user' => $this->userPayload($user) + ['demo' => true]]);
-    }
-
     // POST /api/logout
     public function logout(Request $request)
     {

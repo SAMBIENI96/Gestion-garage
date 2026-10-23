@@ -105,17 +105,6 @@
     @keyframes pop { from { opacity: 0; transform: scale(.7) rotate(-12deg); } }
 
     /* ── Démo ───────────────────────────────────────────────────── */
-    .demo-card { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--r-lg); margin-bottom: 16px;
-      border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-      background: linear-gradient(180deg, var(--soft-accent), transparent 80%), var(--card); box-shadow: var(--shadow); }
-    .demo-card .d-ico { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: #fff; flex-shrink: 0;
-      background: linear-gradient(140deg, #ff8a4c, var(--accent)); box-shadow: 0 8px 18px -8px var(--accent); }
-    .demo-card .grow { flex: 1; min-width: 0; }
-    .demo-card b { display: block; font-size: 15.5px; }
-    .demo-card small { color: var(--t3); font-size: 12.5px; }
-    .demo-card .btn { width: auto; height: 42px; padding: 0 18px; font-size: 14.5px; }
-    .or { display: flex; align-items: center; gap: 12px; color: var(--t3); font-size: 12.5px; margin: 4px 0 16px; }
-    .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .demo-chip { font-size: 11px; font-weight: 800; letter-spacing: .6px; padding: 4px 8px; border-radius: 8px; color: #fff; background: linear-gradient(90deg, #ff8a4c, var(--accent)); }
 
     /* ── Champs ─────────────────────────────────────────────────── */
@@ -394,12 +383,6 @@
       <h1>AutoGest Atelier</h1>
       <p>Vos interventions, partout dans l'atelier.</p>
     </div>
-    <div class="demo-card" id="demo-card" hidden>
-      <span class="d-ico"><svg class="ic"><use href="#i-play"/></svg></span>
-      <div class="grow"><b>Essayer la démo</b><small>Sans compte · données fictives</small></div>
-      <button class="btn btn-primary" data-action="demo" id="demo-btn"><span>Lancer</span></button>
-    </div>
-    <div class="or" id="demo-or" hidden>ou connectez-vous</div>
     <form class="login-card" id="login-form" novalidate>
       <div id="login-error" class="alert error" role="alert" hidden><svg class="ic sm"><use href="#i-alert"/></svg><span></span></div>
       <div class="field">
@@ -420,8 +403,7 @@
       <button type="submit" class="btn btn-primary" id="login-btn" style="margin-top:6px"><span>Se connecter</span></button>
     </form>
     <p class="login-foot">
-      Inscrit avec Google ? Définissez d'abord un mot de passe dans <b>Paramètres</b> de l'espace bureau.<br><br>
-      <a href="/login">Ouvrir l'espace bureau →</a>
+      Vous pouvez aussi vous connecter depuis la <a href="/login">page d'accueil</a>, avec votre e-mail ou votre compte Google.
     </p>
   </div>
 </section>
@@ -535,6 +517,6 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="/mecanicien/app.js?v=3" defer></script>
+<script src="/mecanicien/app.js?v=4" defer></script>
 </body>
 </html>

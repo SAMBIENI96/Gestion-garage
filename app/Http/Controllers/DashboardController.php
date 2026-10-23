@@ -15,7 +15,7 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         if ($user->isMecanicien()) {
-            return redirect()->route('repairs.mecanicien');
+            return redirect()->route('mecanicien.handoff');
         }
 
         $stats = [

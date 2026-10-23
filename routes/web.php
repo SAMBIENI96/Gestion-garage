@@ -12,6 +12,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\DemoController;
+use App\Http\Controllers\MecanicienAppController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +70,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/repairs/{repair}/assign', [RepairOrderController::class, 'assign'])
          ->name('repairs.assign')
          ->middleware('role:patron');
+
+    // Mécanicien : passage de la page d'accueil à l'application mobile
+    Route::get('/connexion/atelier', [MecanicienAppController::class, 'handoff'])
+         ->name('mecanicien.handoff')
+         ->middleware('role:mecanicien');
 
     // Mécanicien: vue de ses tâches
     Route::get('/mes-taches', [RepairOrderController::class, 'mecanicien'])

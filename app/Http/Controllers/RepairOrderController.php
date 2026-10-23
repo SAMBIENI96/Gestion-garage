@@ -106,6 +106,31 @@ class RepairOrderController extends Controller
         return view('repairs.show', compact('repair', 'mecaniciens'));
     }
 
+    public function edit(RepairOrder $repair)
+    {
+        $repair->load(['client', 'vehicle']);
+
+        return view('repairs.edit', compact('repair'));
+    }
+
+    public function update(Request $request, RepairOrder $repair)
+    {
+        $data = $request->validate([
+            'description_panne'  => 'required|string',
+            'pieces_estimees'    => 'nullable|string',
+            'cout_estime'        => 'nullable|numeric|min:0',
+            'urgence'            => 'required|in:normal,urgent,vip',
+            'date_entree'        => 'required|date',
+            'date_sortie_prevue' => 'nullable|date|after_or_equal:date_entree',
+            'kilometrage_entree' => 'nullable|integer|min:0',
+        ]);
+
+        $repair->update($data);
+
+        return redirect()->route('repairs.show', $repair)
+            ->with('success', "Ordre {$repair->numero} mis à jour.");
+    }
+
     public function assign(Request $request, RepairOrder $repair)
     {
         $data = $request->validate([

@@ -71,6 +71,11 @@ class GoogleAuthController extends Controller
             return redirect()->route('login')->with('error', 'Compte désactivé. Contactez le patron.');
         }
 
+        // Le mécanicien arrive directement dans son application mobile
+        if ($user->isMecanicien()) {
+            return MecanicienAppController::redirectToApp($user);
+        }
+
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
