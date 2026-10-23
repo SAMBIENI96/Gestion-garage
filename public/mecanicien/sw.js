@@ -1,10 +1,10 @@
 // Service worker AutoGest Atelier.
 // Pages et scripts : réseau d'abord (toujours la dernière version), cache si hors ligne.
 // Icônes et polices : cache d'abord. API : jamais mise en cache.
-const CACHE = 'autogest-atelier-v2';
+const CACHE = 'autogest-atelier-v3';
 const PRECACHE = [
   '/mecanicien/',
-  '/mecanicien/app.js?v=2',
+  '/mecanicien/app.js?v=3',
   '/mecanicien/manifest.json',
   '/mecanicien/icons/icon.svg',
   '/mecanicien/icons/icon-192.png',

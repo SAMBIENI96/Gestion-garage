@@ -26,6 +26,34 @@
         </div>
     @endif
 
+    @if(\App\Support\Demo::enabled())
+    <section class="demo-box" aria-labelledby="demo-title">
+        <div class="demo-head">
+            <span class="demo-ico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg></span>
+            <div>
+                <h2 id="demo-title">Essayer la démo</h2>
+                <p>Sans compte, en un clic. Données fictives, remises à zéro chaque jour.</p>
+            </div>
+        </div>
+        <div class="demo-roles">
+            @foreach([
+                'patron'     => ['Patron', 'Tableau de bord, factures', 'M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941'],
+                'accueil'    => ['Accueil', 'Clients, réparations', 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z'],
+                'mecanicien' => ['Mécanicien', 'Appli mobile atelier', 'M21.75 6.75a4.5 4.5 0 01-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 11-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 016.336-4.486l-3.276 3.276a3.004 3.004 0 002.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852z'],
+            ] as $role => [$label, $desc, $path])
+            <form method="POST" action="{{ route('demo.login', $role) }}">
+                @csrf
+                <button type="submit" class="demo-role btn">
+                    <span class="r-ico r-{{ $role }}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $path }}"/></svg></span>
+                    <span class="r-txt"><b>{{ $label }}</b><small>{{ $desc }}</small></span>
+                </button>
+            </form>
+            @endforeach
+        </div>
+    </section>
+    <div class="auth-divider">ou connectez-vous</div>
+    @endif
+
     @include('partials.google-button')
 
     <form action="{{ route('login') }}" method="POST" novalidate>

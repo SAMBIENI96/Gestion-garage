@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\DemoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,9 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/auth/google',          [GoogleAuthController::class, 'redirect'])->name('auth.google');
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+    // Démo sans identifiants (DEMO_MODE=true)
+    Route::post('/demo/{role}', [DemoController::class, 'login'])->name('demo.login')->middleware('throttle:20,1');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
@@ -43,8 +47,8 @@ Route::middleware(['auth'])->group(function () {
     // ── Paramètres (tous les rôles) ────────────────────────────
     Route::get('/parametres',               [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/parametres/theme',       [SettingsController::class, 'updateTheme'])->name('settings.theme');
-    Route::patch('/parametres/profil',      [SettingsController::class, 'updateProfile'])->name('settings.profile');
-    Route::put('/parametres/mot-de-passe',  [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::patch('/parametres/profil',      [SettingsController::class, 'updateProfile'])->name('settings.profile')->middleware('demo.block');
+    Route::put('/parametres/mot-de-passe',  [SettingsController::class, 'updatePassword'])->name('settings.password')->middleware('demo.block');
 
     // ── Clients (accueil + patron) ─────────────────────────────
     Route::middleware('role:patron,accueil')->group(function () {
@@ -89,8 +93,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/invoices/{invoice}/print',          [InvoiceController::class, 'print'])->name('invoices.print');
     });
 
-    // ── Gestion utilisateurs (patron uniquement) ───────────────
-    Route::middleware('role:patron')->group(function () {
+    // ── Gestion utilisateurs (patron uniquement, lecture seule en démo) ──
+    Route::middleware(['role:patron', 'demo.block'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])
              ->name('users.toggleActive');

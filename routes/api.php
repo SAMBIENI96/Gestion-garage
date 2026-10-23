@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\MecanicienApiController;
 use App\Http\Middleware\EnsureUserIsActive;
 
 Route::post('/login', [MecanicienApiController::class, 'login'])->middleware('throttle:6,1');
+Route::get('/demo', [MecanicienApiController::class, 'demoStatus']);
+Route::post('/demo-login', [MecanicienApiController::class, 'demoLogin'])->middleware('throttle:20,1');
 
 Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout',                    [MecanicienApiController::class, 'logout']);

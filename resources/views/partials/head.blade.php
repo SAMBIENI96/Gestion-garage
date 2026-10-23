@@ -5,10 +5,10 @@
 <meta name="theme-color" content="#ffffff">
 
 {{-- Thème appliqué avant le premier rendu (pas de flash).
-     Connecté : préférence du compte. Sinon : dernier choix sur cet appareil. --}}
+     Connecté : préférence du compte. Sinon (ou compte de démo partagé) : dernier choix sur cet appareil. --}}
 <script>
 (function () {
-    var pref = @json(auth()->user()?->theme);
+    var pref = @json(\App\Support\Demo::isDemoUser(auth()->user()) && \App\Support\Demo::enabled() ? null : auth()->user()?->theme);
     try {
         if (pref) localStorage.setItem('ag-theme', pref);
         else pref = localStorage.getItem('ag-theme');

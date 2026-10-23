@@ -53,6 +53,7 @@ Comme Vercel peut lancer plusieurs instances qui ne partagent pas leur disque, u
    | `APP_KEY` | résultat de `php artisan key:generate --show` — **ne jamais la changer ensuite** |
    | `APP_URL` | `https://<votre-projet>.vercel.app` |
    | `DEMO_SEED` | `true` (crée les comptes de démo si la base est vide) |
+   | `DEMO_MODE` | `true` pour une démo publique : boutons « Essayer la démo » sans identifiants |
    | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | facultatif (voir plus bas) ; URI de redirection Google : `https://<votre-projet>.vercel.app/auth/google/callback` |
 
 4. *Deploy*. Au démarrage, le conteneur applique les migrations puis crée les comptes de démo. Chaque `git push` sur `main` redéploie automatiquement.
@@ -102,6 +103,14 @@ Les comptes de démo ne sont alors créés qu'au premier démarrage, quand la ba
 docker build -t autogest .
 docker run -p 8080:8080 -e APP_KEY=... -e DEMO_SEED=true autogest
 ```
+
+## Mode démo public
+
+Avec `DEMO_MODE=true`, la page de connexion affiche un bloc **« Essayer la démo »** : un clic sur *Patron*, *Accueil* ou *Mécanicien* ouvre l'application sans identifiants (le mécanicien arrive sur l'application mobile, qui a aussi son bouton « Essayer la démo »).
+
+- Données fictives réalistes (clients, interventions à tous les stades, factures), **remises à zéro automatiquement** toutes les `DEMO_RESET_HOURS` heures (24 par défaut) ou à la demande : `php artisan demo:reset`.
+- Les comptes de démo ne peuvent **ni changer leur mot de passe ou leur profil, ni gérer les utilisateurs** ; tout le reste est utilisable.
+- Un bandeau « Mode démo » rappelle que les données sont fictives.
 
 ## Inscription et connexion avec Google
 

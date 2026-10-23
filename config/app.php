@@ -15,6 +15,11 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // Mode démonstration : connexion sans identifiants, données remises à zéro
+    // automatiquement toutes les DEMO_RESET_HOURS heures (voir App\Support\Demo).
+    'demo' => (bool) env('DEMO_MODE', false),
+    'demo_reset_hours' => (int) env('DEMO_RESET_HOURS', 24),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

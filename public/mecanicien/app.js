@@ -123,11 +123,36 @@
     } finally { btn.classList.remove('loading'); btn.disabled = false; }
   }
 
+  // Démo : connexion du mécanicien de démonstration sans identifiants
+  async function demoLogin() {
+    const btn = $('#demo-btn');
+    btn.classList.add('loading'); btn.disabled = true;
+    try {
+      const data = await api('/demo-login', { method: 'POST' });
+      state.token = data.token; state.user = data.user;
+      store.set('ag_token', data.token); store.set('ag_user', JSON.stringify(data.user));
+      history.replaceState(null, '', '/mecanicien/');
+      enterApp();
+      toast('Bienvenue dans la démo ! Vous êtes Kofi, mécanicien.', 'info');
+    } catch (ex) {
+      toast(ex.status === 404 ? 'La démo n\'est pas activée sur ce serveur.' : 'Impossible de lancer la démo. Réessayez.', 'error');
+    } finally { btn.classList.remove('loading'); btn.disabled = false; }
+  }
+
+  async function checkDemo() {
+    try {
+      const { enabled } = await api('/demo');
+      $('#demo-card').hidden = $('#demo-or').hidden = !enabled;
+      if (enabled && new URLSearchParams(location.search).get('demo') === '1') demoLogin();
+    } catch {}
+  }
+
   async function logout(message) {
     if (state.token && !message) api('/logout', { method: 'POST' }).catch(() => {});
     state.token = null; state.user = null; state.tasks = []; state.done = []; state.knownIds = null;
     store.del('ag_token'); store.del('ag_user');
     show('login');
+    checkDemo();
     if (message) toast(message, 'error');
   }
 
@@ -137,6 +162,7 @@
     $('#hello-name').textContent = 'Bonjour ' + first;
     $('#today').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     setAvatar($('#header-avatar'), u);
+    $('#demo-chip').hidden = !u.demo;
     show('app');
     const start = new URLSearchParams(location.search).get('tab');
     tab(['tasks', 'done', 'profile'].includes(start) ? start : 'tasks');
@@ -441,6 +467,7 @@
       case 'refresh': return load();
       case 'back': return history.length > 1 ? history.back() : show('app');
       case 'logout': return logout();
+      case 'demo': return demoLogin();
       case 'toggle-theme': return applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
       case 'reveal': {
         const input = $('#password'); const shown = input.type === 'password';
@@ -502,8 +529,9 @@
   pullToRefresh();
   if (state.token) {
     enterApp();
-    api('/me').then((u) => { state.user = u; store.set('ag_user', JSON.stringify(u)); setAvatar($('#header-avatar'), u); }).catch(() => {});
+    api('/me').then((u) => { u.demo = state.user?.demo; state.user = u; store.set('ag_user', JSON.stringify(u)); setAvatar($('#header-avatar'), u); }).catch(() => {});
   } else {
     show('login');
+    checkDemo();
   }
 })();

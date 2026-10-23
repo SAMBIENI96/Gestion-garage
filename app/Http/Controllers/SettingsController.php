@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Demo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -20,7 +21,10 @@ class SettingsController extends Controller
             'theme' => 'required|in:system,light,dark',
         ]);
 
-        $request->user()->update($data);
+        // Compte de démo partagé : le thème reste sur l'appareil du visiteur
+        if (! (Demo::enabled() && Demo::isDemoUser($request->user()))) {
+            $request->user()->update($data);
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['theme' => $data['theme']]);

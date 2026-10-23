@@ -142,6 +142,17 @@
         </div>
     </header>
 
+    @if(\App\Support\Demo::enabled() && \App\Support\Demo::isDemoUser(auth()->user()))
+    <div class="demo-banner" role="status">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg>
+        <span><b>Mode démo</b> · connecté en tant que {{ auth()->user()->role_label }}. Données fictives, remises à zéro chaque jour.</span>
+        <form action="{{ route('logout') }}" method="POST" data-no-loading>
+            @csrf
+            <button type="submit">Changer de rôle</button>
+        </form>
+    </div>
+    @endif
+
     <main id="content">
         {{-- Messages flash : convertis en notifications par autogest.js (restent visibles sans JS) --}}
         @if(session('success'))

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairOrder;
 use App\Models\InterventionNote;
 use App\Models\User;
+use App\Support\Demo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -34,7 +35,10 @@ class MecanicienApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Application réservée aux mécaniciens.'], 403);
         }
 
-        $user->tokens()->delete();
+        // Un seul appareil connecté par mécanicien, sauf les comptes de démo partagés
+        if (! (Demo::enabled() && Demo::isDemoUser($user))) {
+            $user->tokens()->delete();
+        }
         $token = $user->createToken('pwa-mecanicien')->plainTextToken;
 
         return response()->json([
@@ -42,6 +46,23 @@ class MecanicienApiController extends Controller
             'token'   => $token,
             'user'    => $this->userPayload($user),
         ]);
+    }
+
+    // GET /api/demo : l'application affiche le bouton « Essayer la démo » si activé
+    public function demoStatus()
+    {
+        return response()->json(['enabled' => Demo::enabled()]);
+    }
+
+    // POST /api/demo-login : connexion du mécanicien de démonstration sans identifiants
+    public function demoLogin()
+    {
+        abort_unless(Demo::enabled(), 404);
+
+        $user = Demo::account('mecanicien');
+        $token = $user->createToken('pwa-demo')->plainTextToken;
+
+        return response()->json(['success' => true, 'token' => $token, 'user' => $this->userPayload($user) + ['demo' => true]]);
     }
 
     // POST /api/logout
@@ -61,7 +82,10 @@ class MecanicienApiController extends Controller
     public function preferences(Request $request)
     {
         $data = $request->validate(['theme' => 'required|in:system,light,dark']);
-        $request->user()->update($data);
+        // Compte de démo partagé : le thème reste sur l'appareil du visiteur
+        if (! (Demo::enabled() && Demo::isDemoUser($request->user()))) {
+            $request->user()->update($data);
+        }
 
         return response()->json($this->userPayload($request->user()));
     }
