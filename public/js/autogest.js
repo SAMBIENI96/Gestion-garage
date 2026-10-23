@@ -200,6 +200,7 @@
         var open = target.hidden;
         target.hidden = !open;
         btn.setAttribute('aria-expanded', String(open));
+        if (btn.classList.contains('demo-toggle')) btn.firstElementChild.textContent = open ? 'Masquer' : 'Voir la démo';
     });
 
     /* ── Messages flash du serveur → notifications ─────────────────── */

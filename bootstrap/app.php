@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Derrière le proxy HTTPS de l'hébergeur : URLs en https, IP réelle du client
         $middleware->trustProxies(at: '*');
 
+        // Rouvrir le lien du site referme une session de démo (retour à la connexion)
+        $middleware->web(append: [\App\Http\Middleware\EndDemoOnNewVisit::class]);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'demo.block' => \App\Http\Middleware\BlockInDemo::class,

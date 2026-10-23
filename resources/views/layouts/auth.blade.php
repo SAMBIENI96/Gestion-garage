@@ -2,7 +2,30 @@
 <html lang="fr">
 <head>
     @include('partials.head')
+    @php($site = \App\Support\Seo::baseUrl())
+    @php($description = "AutoGest Pro, le logiciel de gestion de garage automobile : clients, ordres de réparation, planning de l'atelier, facturation et application mobile pour les mécaniciens. Démo gratuite, sans inscription.")
     <title>@yield('title') — AutoGest Pro</title>
+
+    {{-- Référencement : la page de connexion est la page d'entrée du site --}}
+    <meta name="description" content="{{ $description }}">
+    <link rel="canonical" href="{{ $site }}@yield('path', '/login')">
+    <meta name="robots" content="index, follow">
+
+    {{-- Aperçu lors d'un partage (LinkedIn, WhatsApp, Facebook, X) --}}
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:site_name" content="AutoGest Pro">
+    <meta property="og:title" content="AutoGest Pro — Gestion de garage automobile">
+    <meta property="og:description" content="Clients, réparations, planning, factures et appli mécanicien. Essayez la démo gratuite, sans inscription.">
+    <meta property="og:url" content="{{ $site }}@yield('path', '/login')">
+    <meta property="og:image" content="{{ $site }}/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="AutoGest Pro — Essayez la démo gratuite">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AutoGest Pro — Gestion de garage automobile">
+    <meta name="twitter:description" content="Clients, réparations, planning, factures et appli mécanicien. Démo gratuite, sans inscription.">
+    <meta name="twitter:image" content="{{ $site }}/og-image.jpg">
 </head>
 <body>
 <div class="auth">

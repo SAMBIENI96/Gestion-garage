@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     @include('partials.head')
+    <meta name="robots" content="noindex, nofollow">
     <meta name="theme-endpoint" content="{{ route('settings.theme') }}">
     <title>@yield('title', 'Garage') — AutoGest Pro</title>
 

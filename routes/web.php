@@ -16,6 +16,33 @@ use App\Http\Controllers\MecanicienAppController;
 
 /*
 |--------------------------------------------------------------------------
+| Référencement : /login est la page d'entrée publique du site
+|--------------------------------------------------------------------------
+*/
+Route::get('/robots.txt', function () {
+    $site = \App\Support\Seo::baseUrl();
+    $lines = [
+        'User-agent: *',
+        'Allow: /login', 'Allow: /inscription', 'Allow: /og-image.jpg', 'Allow: /css/', 'Allow: /js/', 'Allow: /mecanicien/icons/',
+        'Disallow: /',
+        '',
+        "Sitemap: {$site}/sitemap.xml",
+    ];
+    return response(implode("\n", $lines)."\n", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+});
+
+Route::get('/sitemap.xml', function () {
+    $site = \App\Support\Seo::baseUrl();
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>'
+        .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        ."<url><loc>{$site}/login</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>"
+        ."<url><loc>{$site}/inscription</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>"
+        .'</urlset>';
+    return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | Auth routes (guests only)
 |--------------------------------------------------------------------------
 */

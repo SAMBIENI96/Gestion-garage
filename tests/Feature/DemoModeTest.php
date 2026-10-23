@@ -30,7 +30,7 @@ class DemoModeTest extends TestCase
     {
         $this->enableDemo();
 
-        $this->get('/login')->assertSee('Essayer la démo');
+        $this->get('/login')->assertSee('Voir la démo');
         $this->post('/demo/patron')->assertRedirect('/');
 
         $this->assertAuthenticatedAs(User::where('email', 'patron@garage.local')->first());
@@ -48,6 +48,33 @@ class DemoModeTest extends TestCase
         $this->assertGuest(); // aucune session web : la démo vit dans l'application
         $token = rawurldecode(explode('#demo=', $location)[1]);
         $this->withToken($token)->getJson('/api/mes-taches')->assertOk()->assertJsonCount(3);
+    }
+
+    public function test_opening_the_site_link_again_ends_the_demo(): void
+    {
+        $this->enableDemo();
+        $this->post('/demo/patron');
+
+        // navigation interne ou rechargement : la démo continue
+        $this->get('/', ['Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Site' => 'same-origin'])->assertOk();
+        $this->get('/', ['Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Site' => 'none', 'Referer' => 'http://localhost/clients'])->assertOk();
+        $this->assertAuthenticated();
+
+        // lien ouvert depuis WhatsApp, LinkedIn… ou adresse tapée : retour à la connexion
+        $this->get('/', ['Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Site' => 'cross-site', 'Referer' => 'https://www.linkedin.com/'])
+            ->assertRedirect('/login');
+        $this->assertGuest();
+        $this->get('/login')->assertSee('Voir la démo');
+    }
+
+    public function test_opening_the_link_does_not_log_out_real_accounts(): void
+    {
+        $this->enableDemo();
+        $boss = User::create(['name' => 'Vrai patron', 'email' => 'vrai@test.local', 'role' => 'patron',
+            'password' => Hash::make('secret-123'), 'is_active' => true, 'approved_at' => now()]);
+
+        $this->actingAs($boss)->get('/', ['Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Site' => 'none'])->assertOk();
+        $this->assertAuthenticatedAs($boss);
     }
 
     public function test_demo_logout_returns_to_the_home_page(): void

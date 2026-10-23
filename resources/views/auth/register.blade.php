@@ -1,5 +1,6 @@
 @extends('layouts.auth')
 @section('title', 'Demander un accès')
+@section('path', '/inscription')
 
 @section('content')
 <span class="auth-eyebrow">
