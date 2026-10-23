@@ -1,50 +1,53 @@
-const CACHE_NAME = 'autogest-v1';
-const ASSETS = [
+// Service worker AutoGest Atelier.
+// Pages et scripts : réseau d'abord (toujours la dernière version), cache si hors ligne.
+// Icônes et polices : cache d'abord. API : jamais mise en cache.
+const CACHE = 'autogest-atelier-v2';
+const PRECACHE = [
   '/mecanicien/',
-  '/mecanicien/index.html',
+  '/mecanicien/app.js?v=2',
   '/mecanicien/manifest.json',
+  '/mecanicien/icons/icon.svg',
+  '/mecanicien/icons/icon-192.png',
+  '/mecanicien/icons/favicon-32.png',
 ];
 
-// Installation
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)));
   self.skipWaiting();
 });
 
-// Activation
-self.addEventListener('activate', e => {
+self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch — Network first, cache fallback
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
 
-  // API calls — toujours réseau, jamais cache
-  if (url.pathname.startsWith('/api/')) {
-    e.respondWith(fetch(e.request).catch(() =>
-      new Response(JSON.stringify({ error: 'Pas de connexion' }), {
-        headers: { 'Content-Type': 'application/json' }
-      })
-    ));
+  // API et photos : toujours le réseau
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/storage/')) return;
+
+  const sameApp = url.origin === location.origin && url.pathname.startsWith('/mecanicien');
+  const isAsset = url.pathname.startsWith('/mecanicien/icons/') || url.hostname.endsWith('gstatic.com') || url.hostname.endsWith('googleapis.com');
+
+  if (isAsset) {
+    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(req, copy));
+      return res;
+    })));
     return;
   }
 
-  // Assets statiques — cache first
-  e.respondWith(
-    caches.match(e.request).then(cached =>
-      cached || fetch(e.request).then(response => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        return response;
-      }).catch(() => caches.match('/mecanicien/index.html'))
-    )
-  );
+  if (sameApp || req.mode === 'navigate') {
+    e.respondWith(fetch(req).then((res) => {
+      if (res.ok && sameApp) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+      return res;
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match('/mecanicien/'))));
+  }
 });

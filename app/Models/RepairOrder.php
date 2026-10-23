@@ -38,6 +38,15 @@ class RepairOrder extends Model
         'cout_estime'           => 'decimal:2',
     ];
 
+    public const STATUT_LABELS = [
+        'nouveau'           => 'Nouveau',
+        'en_attente_pieces' => 'En attente pièces',
+        'en_cours'          => 'En cours',
+        'termine'           => 'Terminé',
+        'probleme'          => 'Problème détecté',
+        'annule'            => 'Annulé',
+    ];
+
     // ── Auto numéro ─────────────────────────────────────────
     protected static function booted(): void
     {
@@ -116,15 +125,7 @@ class RepairOrder extends Model
     // ── ACCESSORS ───────────────────────────────────────────
     public function getStatutLabelAttribute(): string
     {
-        return match ($this->statut) {
-            'nouveau'           => 'Nouveau',
-            'en_attente_pieces' => 'En attente pièces',
-            'en_cours'          => 'En cours',
-            'termine'           => 'Terminé',
-            'probleme'          => 'Problème détecté',
-            'annule'            => 'Annulé',
-            default             => $this->statut,
-        };
+        return self::STATUT_LABELS[$this->statut] ?? (string) $this->statut;
     }
 
     public function getStatutColorAttribute(): string

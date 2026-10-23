@@ -1,24 +1,38 @@
 {
-  "name": "AutoGest Pro — Mécanicien",
-  "short_name": "AutoGest",
-  "description": "Gestion des interventions garage",
-  "start_url": "/mecanicien/",
+  "id": "/mecanicien/",
+  "name": "AutoGest Atelier",
+  "short_name": "Atelier",
+  "description": "Interventions, statuts et photos pour les mécaniciens du garage.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/mecanicien/?source=pwa",
+  "scope": "/mecanicien/",
   "display": "standalone",
-  "background_color": "#0d0f14",
-  "theme_color": "#e8622a",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
+  "background_color": "#0a0c11",
+  "theme_color": "#10131a",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
+    { "src": "/mecanicien/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/mecanicien/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/mecanicien/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/mecanicien/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/mecanicien/icons/icon-monochrome-512.png", "sizes": "512x512", "type": "image/png", "purpose": "monochrome" },
+    { "src": "/mecanicien/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
     {
-      "src": "/mecanicien/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Mes interventions",
+      "short_name": "Tâches",
+      "url": "/mecanicien/?tab=tasks&source=shortcut",
+      "icons": [{ "src": "/mecanicien/icons/shortcut-tasks.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "src": "/mecanicien/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Interventions terminées",
+      "short_name": "Terminées",
+      "url": "/mecanicien/?tab=done&source=shortcut",
+      "icons": [{ "src": "/mecanicien/icons/shortcut-done.png", "sizes": "96x96", "type": "image/png" }]
     }
   ]
 }
